@@ -9,7 +9,7 @@ st.set_page_config(
     layout="wide"
 )
 
-PLAYOFF_WEEKS = ["Week 17", "Week 18", "Wildcard", "Divisional", "Conference", "Super Bowl"]
+PLAYOFF_WEEKS = ["Wildcard", "Divisional", "Conference", "Super Bowl"]
 
 
 @st.cache_resource
