@@ -1,9 +1,9 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
-from datetime import datetime, timezone
+from datetime import datetime
 import pytz
-from typing import List, Dict, Set, Tuple, Optional
+from typing import List, Dict, Set, Tuple
 
 # Page configuration
 st.set_page_config(
@@ -66,12 +66,12 @@ def get_all_players(_conn) -> Dict[str, List[str]]:
     """Get all available players by position from Google Sheet"""
     try:
         # Read from the "Players" worksheet
-        players_df = _conn.read(worksheet="Players", ttl=60)
-        
+        players_df = _conn.read(worksheet="players_2", ttl=60)
+
         if players_df.empty:
             st.warning("Players worksheet is empty, using sample players")
             return SAMPLE_PLAYERS
-        
+
         # Organize players by position
         players_by_position = {
             "QB": [],
@@ -79,40 +79,67 @@ def get_all_players(_conn) -> Dict[str, List[str]]:
             "WR": [],
             "TE": []
         }
-        
-        # Check if there's a Position column
-        if "Position" in players_df.columns and "Player Name" in players_df.columns:
+
+        # New flattened format: playerName, playerID, position columns
+        if "playerName" in players_df.columns and "position" in players_df.columns:
+            for _, row in players_df.iterrows():
+                position = str(row["position"]).strip().upper()
+                player_name = str(row["playerName"]).strip()
+
+                if position in players_by_position and player_name:
+                    players_by_position[position].append(player_name)
+        # Legacy format: Position column with Player Name
+        elif "Position" in players_df.columns and "Player Name" in players_df.columns:
             for _, row in players_df.iterrows():
                 position = str(row["Position"]).strip().upper()
                 player_name = str(row["Player Name"]).strip()
-                
-                if position == "QB" and player_name:
-                    players_by_position["QB"].append(player_name)
-                elif position == "RB" and player_name:
-                    players_by_position["RB"].append(player_name)
-                elif position == "WR" and player_name:
-                    players_by_position["WR"].append(player_name)
-                elif position == "TE" and player_name:
-                    players_by_position["TE"].append(player_name)
+
+                if position in players_by_position and player_name:
+                    players_by_position[position].append(player_name)
         else:
-            # Try to infer from column names (QB, RB, WR, TE)
+            # Legacy format: column names as positions (QB, RB, WR, TE)
             for col in players_df.columns:
                 col_upper = col.upper()
                 if col_upper in ["QB", "RB", "WR", "TE"]:
                     players = players_df[col].dropna().tolist()
                     players_by_position[col_upper] = [str(p).strip() for p in players if p]
-        
+
         # Filter out empty lists
         players_by_position = {k: v for k, v in players_by_position.items() if v}
-        
+
         if not players_by_position:
             st.warning("No players found in Players worksheet, using sample players")
             return SAMPLE_PLAYERS
-        
+
         return players_by_position
     except Exception as e:
         st.warning(f"Could not load players from sheet: {e}. Using sample players.")
         return SAMPLE_PLAYERS
+
+
+@st.cache_data(ttl=60)
+def get_player_id_map(_conn) -> Dict[str, str]:
+    """Get mapping of player names to player IDs from Google Sheet"""
+    try:
+        players_df = _conn.read(worksheet="players_2", ttl=60)
+
+        if players_df.empty:
+            return {}
+
+        # Only works with new flattened format
+        if "playerName" not in players_df.columns or "playerID" not in players_df.columns:
+            return {}
+
+        player_id_map = {}
+        for _, row in players_df.iterrows():
+            player_name = str(row["playerName"]).strip()
+            player_id = str(row["playerID"]).strip()
+            if player_name and player_id:
+                player_id_map[player_name] = player_id
+
+        return player_id_map
+    except Exception:
+        return {}
 
 @st.cache_data(ttl=30)  # Cache for 30 seconds
 def load_users_from_sheet(_conn) -> pd.DataFrame:
@@ -120,7 +147,7 @@ def load_users_from_sheet(_conn) -> pd.DataFrame:
     try:
         df = _conn.read(worksheet="Users", ttl=30)
         return df
-    except Exception as e:
+    except Exception:
         # If Users worksheet doesn't exist, return empty DataFrame
         return pd.DataFrame()
 
@@ -134,6 +161,7 @@ def load_picks_from_sheet(_conn) -> pd.DataFrame:
     except Exception as e:
         st.warning(f"Could not load picks from sheet: {e}")
         return pd.DataFrame()
+
 
 def get_used_players_for_user(df: pd.DataFrame, username: str) -> Set[str]:
     """Get set of all players already used by a specific user"""
@@ -309,7 +337,7 @@ def user_exists(_conn, username: str) -> bool:
         if users_df.empty or "User Name" not in users_df.columns:
             return False
         return username in users_df['User Name'].values
-    except Exception as e:
+    except Exception:
         return False
 
 def create_user(_conn, username: str, password: str) -> Tuple[bool, str]:
@@ -345,7 +373,7 @@ def create_user(_conn, username: str, password: str) -> Tuple[bool, str]:
         # Try to update the sheet (this will create it if it doesn't exist)
         try:
             _conn.update(worksheet="Users", data=updated_df)
-        except Exception as update_error:
+        except Exception:
             # If update fails, try using create method
             try:
                 _conn.create(worksheet="Users", data=updated_df)
@@ -355,10 +383,11 @@ def create_user(_conn, username: str, password: str) -> Tuple[bool, str]:
         
         # Clear cache to force refresh
         load_users_from_sheet.clear()
-        
+
         return True, "Account created successfully!"
     except Exception as e:
         return False, f"Error creating account: {str(e)}"
+
 
 def main():
     st.title("🏈 Fantasy Football Playoffs - One and Done")
@@ -481,28 +510,28 @@ def main():
             st.session_state.authenticated = False
             st.session_state.username = ""
             st.rerun()
-    
+
     st.markdown("---")
-    
+
     username = st.session_state.username
-    
+
     # Load existing picks
     picks_df = load_picks_from_sheet(conn)
-    
+
     # Week selection
     week = st.selectbox("Select Playoff Week:", PLAYOFF_WEEKS, key="week_select")
-    
+
     # Check if editing is allowed for this week
     can_edit, edit_message = can_edit_lineup(week)
     if not can_edit:
         st.warning(f"⏰ {edit_message}")
-    
+
     # Check if user has already submitted for this week
     existing_lineup = None
     existing_lineup_index = None
     if not picks_df.empty:
         user_week_picks = picks_df[
-            (picks_df['User Name'] == username) & 
+            (picks_df['User Name'] == username) &
             (picks_df['Week'] == week)
         ]
         if not user_week_picks.empty:
@@ -511,12 +540,12 @@ def main():
             st.info(f"📝 You have an existing lineup for {week} week. You can edit it below.")
             # Show existing lineup in an expander
             with st.expander("📋 View Current Lineup"):
-                st.dataframe(user_week_picks[['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE', 'Timestamp']], 
+                st.dataframe(user_week_picks[['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE', 'Timestamp']],
                             use_container_width=True, hide_index=True)
-    
+
     # Get used players for this user (excluding current week if editing)
     used_players = get_used_players_for_user(picks_df, username)
-    
+
     # If editing, remove players from current lineup from used list
     if existing_lineup is not None:
         current_lineup_players = [
@@ -530,21 +559,21 @@ def main():
         for player in current_lineup_players:
             if player in used_players:
                 used_players.remove(player)
-    
+
     # Display used players
     if used_players:
         with st.expander(f"📋 Players already used by {username}"):
             st.write(", ".join(sorted(used_players)))
-    
+
     # Get available players from Google Sheet
     all_players = get_all_players(conn)
-    
+
     st.markdown("---")
     st.subheader("Select Your Lineup")
-    
+
     # Create columns for player selection
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.markdown("### Quarterback (1 required)")
         # Filter available QBs (exclude used ones)
@@ -558,14 +587,14 @@ def main():
             default_index = 0
             if default_qb in available_qbs:
                 default_index = available_qbs.index(default_qb) + 1
-            
+
             qb = st.selectbox(
                 "QB",
                 ["Select a player..."] + available_qbs,
                 index=default_index,
                 key="qb_select"
             )
-    
+
     with col2:
         st.markdown("### Running Backs (2 required)")
         # Filter available RBs
@@ -613,7 +642,7 @@ def main():
                 index=default_index2,
                 key="rb2_select"
             )
-    
+
     with col3:
         st.markdown("### Wide Receivers (2 required)")
         # Filter available WRs
@@ -661,7 +690,7 @@ def main():
                 index=default_index2,
                 key="wr2_select"
             )
-    
+
     st.markdown("### Tight End (1 required)")
     # Filter available TEs
     available_tes = [p for p in all_players.get("TE", []) if p not in used_players]
@@ -679,15 +708,15 @@ def main():
             index=default_index,
             key="te_select"
         )
-    
+
     st.markdown("---")
-    
+
     # Submit/Update button
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         button_text = "✏️ Update Lineup" if existing_lineup is not None else "🚀 Submit Lineup"
         submit_button = st.button(button_text, type="primary", use_container_width=True, disabled=not can_edit)
-    
+
     if submit_button:
         # Check if editing is still allowed
         can_edit_now, edit_msg = can_edit_lineup(week)
@@ -709,18 +738,18 @@ def main():
                 for player in current_lineup_players:
                     if player in validation_used:
                         validation_used.remove(player)
-            
+
             is_valid, error_message = validate_lineup(
                 qb, rb1, rb2, wr1, wr2, te, validation_used
             )
-            
+
             if not is_valid:
                 st.error(f"❌ {error_message}")
             else:
                 # Double-check used players one more time (in case sheet was updated)
                 current_used = get_used_players_for_user(picks_df, username)
                 all_picks = [qb, rb1, rb2, wr1, wr2, te]
-                
+
                 # Remove current lineup players from used list for validation
                 if existing_lineup is not None:
                     current_lineup_players = [
@@ -734,7 +763,7 @@ def main():
                     for player in current_lineup_players:
                         if player in current_used:
                             current_used.remove(player)
-                
+
                 # Check again if any player was used
                 conflict_players = [p for p in all_picks if p in current_used]
                 if conflict_players:
@@ -747,7 +776,7 @@ def main():
                         conn, username, week, qb, rb1, rb2, wr1, wr2, te,
                         is_edit=is_edit
                     )
-                    
+
                     if success:
                         st.success(f"✅ {message}")
                         st.balloons()
@@ -755,7 +784,7 @@ def main():
                         st.rerun()
                     else:
                         st.error(f"❌ {message}")
-    
+
     # Display user's previous picks
     if not picks_df.empty and username:
         st.markdown("---")
@@ -771,6 +800,7 @@ def main():
             )
         else:
             st.info("No previous picks found for this user.")
+
 
 if __name__ == "__main__":
     main()

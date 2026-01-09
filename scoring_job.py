@@ -1,0 +1,568 @@
+#!/usr/bin/env python3
+"""
+Background job to fetch NFL player scoring data from RapidAPI.
+
+This script:
+1. Connects to Google Sheets using service account credentials
+2. Reads the Schedule worksheet to find active/recent games
+3. Fetches player stats from RapidAPI for players in active games
+4. Writes/updates scores in the Scores worksheet
+
+Usage:
+    python scoring_job.py
+    python scoring_job.py --week Wildcard    # Override week (for testing)
+    python scoring_job.py --week "Week 18"   # Test with specific week
+
+Recommended cron schedule (during game days):
+    */5 12-23 * * 0,6 /path/to/venv/bin/python /path/to/scoring_job.py >> scoring.log 2>&1
+"""
+
+import argparse
+import sys
+import time
+import logging
+from datetime import datetime, timedelta
+from typing import List, Dict, Optional, Any
+from pathlib import Path
+
+import requests
+import pandas as pd
+import gspread
+from google.oauth2.service_account import Credentials
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# RapidAPI configuration
+RAPIDAPI_HOST = "tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com"
+RAPIDAPI_ENDPOINT = "/getNFLGamesForPlayer"
+
+# Fantasy scoring rules (passed to API)
+SCORING_RULES = {
+    "passYards": ".04",
+    "passTD": "4",
+    "passInterceptions": "-2",
+    "pointsPerReception": "1",
+    "carries": ".2",
+    "rushYards": ".1",
+    "rushTD": "6",
+    "fumbles": "-2",
+    "receivingYards": ".1",
+    "receivingTD": "6",
+    "targets": "0",
+    "defTD": "6",
+    "xpMade": "1",
+    "xpMissed": "-1",
+    "fgMade": "3",
+    "fgMissed": "-3",
+}
+
+# Rate limiting
+API_CALL_DELAY_SECONDS = 1.0
+MAX_RETRIES = 3
+
+
+class Config:
+    """Configuration loaded from secrets.toml."""
+
+    def __init__(self):
+        self.rapidapi_key: str = ""
+        self.spreadsheet_url: str = ""
+        self.gcp_credentials: Dict[str, Any] = {}
+
+    @classmethod
+    def from_secrets_toml(cls, secrets_path: str = ".streamlit/secrets.toml") -> "Config":
+        """Load configuration from Streamlit secrets.toml file."""
+        import tomli
+
+        config = cls()
+        secrets_file = Path(secrets_path)
+
+        if not secrets_file.exists():
+            raise FileNotFoundError(f"Secrets file not found: {secrets_path}")
+
+        with open(secrets_file, "rb") as f:
+            secrets = tomli.load(f)
+
+        # Load RapidAPI key
+        config.rapidapi_key = secrets.get("rapidapi", {}).get("key", "")
+
+        # Load Google Sheets connection info
+        gsheets = secrets.get("connections", {}).get("gsheets", {})
+        config.spreadsheet_url = gsheets.get("spreadsheet", "")
+
+        # Build GCP credentials dict
+        config.gcp_credentials = {
+            "type": gsheets.get("type", "service_account"),
+            "project_id": gsheets.get("project_id", ""),
+            "private_key_id": gsheets.get("private_key_id", ""),
+            "private_key": gsheets.get("private_key", ""),
+            "client_email": gsheets.get("client_email", ""),
+            "client_id": gsheets.get("client_id", ""),
+            "auth_uri": gsheets.get("auth_uri", "https://accounts.google.com/o/oauth2/auth"),
+            "token_uri": gsheets.get("token_uri", "https://oauth2.googleapis.com/token"),
+            "auth_provider_x509_cert_url": gsheets.get(
+                "auth_provider_x509_cert_url",
+                "https://www.googleapis.com/oauth2/v1/certs"
+            ),
+            "client_x509_cert_url": gsheets.get("client_x509_cert_url", ""),
+        }
+
+        return config
+
+
+class GoogleSheetsClient:
+    """Client for reading/writing to Google Sheets."""
+
+    SCOPES = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive",
+    ]
+
+    def __init__(self, credentials_dict: Dict[str, Any], spreadsheet_url: str):
+        self.credentials = Credentials.from_service_account_info(
+            credentials_dict,
+            scopes=self.SCOPES
+        )
+        self.client = gspread.authorize(self.credentials)
+        self.spreadsheet = self.client.open_by_url(spreadsheet_url)
+
+    def read_worksheet(self, worksheet_name: str) -> pd.DataFrame:
+        """Read a worksheet into a DataFrame."""
+        try:
+            worksheet = self.spreadsheet.worksheet(worksheet_name)
+            data = worksheet.get_all_records()
+            return pd.DataFrame(data)
+        except gspread.WorksheetNotFound:
+            logger.warning(f"Worksheet '{worksheet_name}' not found")
+            return pd.DataFrame()
+
+    def write_worksheet(self, worksheet_name: str, df: pd.DataFrame):
+        """Write a DataFrame to a worksheet (replaces all data)."""
+        try:
+            worksheet = self.spreadsheet.worksheet(worksheet_name)
+        except gspread.WorksheetNotFound:
+            worksheet = self.spreadsheet.add_worksheet(
+                title=worksheet_name,
+                rows=max(100, len(df) + 10),
+                cols=len(df.columns) + 2
+            )
+            logger.info(f"Created new worksheet: {worksheet_name}")
+
+        worksheet.clear()
+
+        if not df.empty:
+            # Convert all values to strings to avoid serialization issues
+            df_str = df.astype(str)
+            data = [df_str.columns.tolist()] + df_str.values.tolist()
+            worksheet.update('A1', data)
+
+
+class RapidAPIClient:
+    """Client for fetching NFL stats from RapidAPI."""
+
+    def __init__(self, api_key: str):
+        self.api_key = api_key
+        self.base_url = f"https://{RAPIDAPI_HOST}"
+
+    def get_player_stats(
+        self,
+        player_id: str,
+        num_games: int = 1
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Fetch player stats for recent games.
+
+        Args:
+            player_id: The Tank01 player ID
+            num_games: Number of recent games to fetch
+
+        Returns:
+            Dict with player stats and fantasy points, or None on error
+        """
+        url = f"{self.base_url}{RAPIDAPI_ENDPOINT}"
+
+        params = {
+            "playerID": player_id,
+            "numberOfGames": str(num_games),
+            "fantasyPoints": "true",
+            "twoPointConversions": "2",
+            "itemFormat": "list",
+            **SCORING_RULES,
+        }
+
+        headers = {
+            "X-RapidAPI-Key": self.api_key,
+            "X-RapidAPI-Host": RAPIDAPI_HOST,
+        }
+
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = requests.get(url, headers=headers, params=params, timeout=30)
+                response.raise_for_status()
+
+                data = response.json()
+
+                if data.get("statusCode") == 200:
+                    body = data.get("body", [])
+                    # API returns a list, get first item if exists
+                    if isinstance(body, list) and len(body) > 0:
+                        return body[0]
+                    return body if body else None
+                else:
+                    logger.warning(f"API returned status: {data.get('statusCode')}")
+                    return None
+
+            except requests.exceptions.RequestException as e:
+                logger.error(f"API request failed (attempt {attempt + 1}): {e}")
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(2 ** attempt)
+
+        return None
+
+
+def get_active_games(schedule_df: pd.DataFrame) -> List[Dict[str, Any]]:
+    """
+    Determine which games should have scores fetched.
+
+    Returns games that are:
+    - Currently in progress (gameStatus == 'in_progress')
+    - Recently finished (gameStatus == 'final')
+    - About to start or recently started (within game window)
+    """
+    if schedule_df.empty:
+        return []
+
+    active_games = []
+    now = datetime.now()
+
+    for _, row in schedule_df.iterrows():
+        game_status = str(row.get("gameStatus", "")).lower().strip()
+        game_id = str(row.get("gameID", ""))
+
+        if game_status == "in_progress":
+            active_games.append(row.to_dict())
+        elif game_status == "final":
+            # Include final games to ensure we have complete data
+            active_games.append(row.to_dict())
+        elif game_status == "scheduled":
+            # Check if game is within the active window
+            try:
+                game_time_str = row.get("gameTime", "")
+                if game_time_str:
+                    game_time = pd.to_datetime(game_time_str)
+                    # Include games that started within the last 4 hours
+                    # or are about to start within 15 minutes
+                    if (game_time - timedelta(minutes=15)) <= now <= (game_time + timedelta(hours=4)):
+                        active_games.append(row.to_dict())
+            except Exception as e:
+                logger.debug(f"Could not parse game time for {game_id}: {e}")
+
+    return active_games
+
+
+def get_players_to_fetch(
+    players_df: pd.DataFrame,
+    picks_df: pd.DataFrame,
+    active_games: List[Dict[str, Any]],
+    week_override: Optional[str] = None
+) -> List[Dict[str, str]]:
+    """
+    Get list of players who need scores fetched.
+
+    Args:
+        players_df: DataFrame of players with playerName and playerID
+        picks_df: DataFrame of picks with Week and position columns
+        active_games: List of active game dicts from schedule
+        week_override: If provided, fetch players for this week regardless of schedule
+
+    Returns list of dicts with playerID, playerName, gameWeek
+    """
+    if players_df.empty or picks_df.empty:
+        return []
+
+    if not active_games and not week_override:
+        return []
+
+    # Determine which weeks to fetch
+    if week_override:
+        # Use override week - fetch all players picked for this week
+        active_weeks = {week_override}
+        logger.info(f"Using week override: {week_override}")
+    else:
+        # Get active game weeks from schedule
+        active_weeks = set()
+        for game in active_games:
+            week = game.get("gameWeek", "")
+            if week:
+                active_weeks.add(week)
+
+    if not active_weeks:
+        logger.info("No active game weeks found")
+        return []
+
+    logger.info(f"Active weeks: {active_weeks}")
+
+    # Get all picked player names for active weeks
+    picked_players = set()
+    position_cols = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE']
+
+    for _, row in picks_df.iterrows():
+        pick_week = str(row.get("Week", "")).strip()
+        if pick_week in active_weeks:
+            for col in position_cols:
+                player = row.get(col)
+                if player and pd.notna(player):
+                    picked_players.add(str(player).strip())
+
+    logger.info(f"Found {len(picked_players)} unique players picked for active weeks")
+
+    # Build player lookup with playerID
+    player_lookup = {}
+    for _, row in players_df.iterrows():
+        name = str(row.get("playerName", "")).strip()
+        player_id = str(row.get("playerID", "")).strip()
+        if name and player_id and player_id != "nan":
+            player_lookup[name] = player_id
+
+    # Build list of players to fetch
+    result = []
+    for player_name in picked_players:
+        if player_name in player_lookup:
+            # Find game week for this player
+            for week in active_weeks:
+                result.append({
+                    "playerID": player_lookup[player_name],
+                    "playerName": player_name,
+                    "gameWeek": week,
+                })
+        else:
+            logger.warning(f"No playerID found for: {player_name}")
+
+    return result
+
+
+def parse_stats_from_response(stats: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract stats from API response into flat dict."""
+    result = {
+        "fantasyPoints": stats.get("fantasyPoints", "0"),
+        "passYards": "0",
+        "passTD": "0",
+        "passInt": "0",
+        "rushYards": "0",
+        "rushTD": "0",
+        "recYards": "0",
+        "recTD": "0",
+        "receptions": "0",
+        "targets": "0",
+        "fumbles": "0",
+    }
+
+    # Extract passing stats
+    passing = stats.get("Passing", {})
+    if passing:
+        result["passYards"] = passing.get("passYds", "0")
+        result["passTD"] = passing.get("passTD", "0")
+        result["passInt"] = passing.get("int", "0")
+
+    # Extract rushing stats
+    rushing = stats.get("Rushing", {})
+    if rushing:
+        result["rushYards"] = rushing.get("rushYds", "0")
+        result["rushTD"] = rushing.get("rushTD", "0")
+
+    # Extract receiving stats
+    receiving = stats.get("Receiving", {})
+    if receiving:
+        result["recYards"] = receiving.get("recYds", "0")
+        result["recTD"] = receiving.get("recTD", "0")
+        result["receptions"] = receiving.get("receptions", "0")
+        result["targets"] = receiving.get("targets", "0")
+
+    # Extract fumbles
+    result["fumbles"] = stats.get("fumbles", "0")
+
+    # Get gameID from response
+    result["gameID"] = stats.get("gameID", "")
+
+    return result
+
+
+def update_scores(
+    sheets_client: GoogleSheetsClient,
+    api_client: RapidAPIClient,
+    players_to_fetch: List[Dict[str, str]]
+) -> int:
+    """
+    Fetch and update scores for the given players.
+
+    Returns count of successfully updated players.
+    """
+    if not players_to_fetch:
+        logger.info("No players to fetch scores for")
+        return 0
+
+    # Load existing scores
+    scores_df = sheets_client.read_worksheet("scores")
+
+    # Create scores dict for updates (keyed by playerID_gameWeek)
+    existing_scores = {}
+    if not scores_df.empty:
+        for _, row in scores_df.iterrows():
+            key = f"{row.get('playerID')}_{row.get('gameWeek')}"
+            existing_scores[key] = row.to_dict()
+
+    updated_count = 0
+
+    for player_info in players_to_fetch:
+        player_id = player_info["playerID"]
+        player_name = player_info["playerName"]
+        game_week = player_info["gameWeek"]
+
+        logger.info(f"Fetching stats for {player_name} (ID: {player_id})")
+
+        # Rate limiting
+        time.sleep(API_CALL_DELAY_SECONDS)
+
+        # Fetch from API
+        stats = api_client.get_player_stats(player_id)
+
+        if stats:
+            parsed = parse_stats_from_response(stats)
+
+            score_record = {
+                "playerID": player_id,
+                "playerName": player_name,
+                "gameID": parsed.get("gameID", ""),
+                "gameWeek": game_week,
+                "fantasyPoints": parsed["fantasyPoints"],
+                "passYards": parsed["passYards"],
+                "passTD": parsed["passTD"],
+                "passInt": parsed["passInt"],
+                "rushYards": parsed["rushYards"],
+                "rushTD": parsed["rushTD"],
+                "recYards": parsed["recYards"],
+                "recTD": parsed["recTD"],
+                "receptions": parsed["receptions"],
+                "targets": parsed["targets"],
+                "fumbles": parsed["fumbles"],
+                "lastUpdated": datetime.utcnow().isoformat() + "Z",
+            }
+
+            key = f"{player_id}_{game_week}"
+            existing_scores[key] = score_record
+            updated_count += 1
+
+            logger.info(f"  -> {player_name}: {score_record['fantasyPoints']} pts")
+        else:
+            logger.warning(f"  -> No stats returned for {player_name}")
+
+    # Convert back to DataFrame and write
+    if existing_scores:
+        # Define column order
+        columns = [
+            "playerID", "playerName", "gameID", "gameWeek", "fantasyPoints",
+            "passYards", "passTD", "passInt", "rushYards", "rushTD",
+            "recYards", "recTD", "receptions", "targets", "fumbles", "lastUpdated"
+        ]
+        updated_df = pd.DataFrame(list(existing_scores.values()))
+        # Reorder columns
+        updated_df = updated_df[[c for c in columns if c in updated_df.columns]]
+        sheets_client.write_worksheet("scores", updated_df)
+        logger.info(f"Updated scores worksheet with {len(updated_df)} records")
+
+    return updated_count
+
+
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Fetch NFL player scoring data from RapidAPI"
+    )
+    parser.add_argument(
+        "--week",
+        type=str,
+        help="Override week to fetch (e.g., 'Wildcard', 'Week 18'). "
+             "Bypasses schedule-based game detection."
+    )
+    return parser.parse_args()
+
+
+def main():
+    """Main entry point for the scoring job."""
+    args = parse_args()
+
+    logger.info("=" * 50)
+    logger.info("Starting scoring job")
+
+    if args.week:
+        logger.info(f"Week override: {args.week}")
+
+    try:
+        # Load configuration
+        config = Config.from_secrets_toml()
+
+        if not config.rapidapi_key:
+            logger.error("RapidAPI key not configured. Add [rapidapi] key = '...' to secrets.toml")
+            sys.exit(1)
+
+        if not config.spreadsheet_url:
+            logger.error("Spreadsheet URL not configured")
+            sys.exit(1)
+
+        # Initialize clients
+        sheets_client = GoogleSheetsClient(
+            config.gcp_credentials,
+            config.spreadsheet_url
+        )
+        api_client = RapidAPIClient(config.rapidapi_key)
+
+        # Read worksheets
+        schedule_df = sheets_client.read_worksheet("schedule")
+        players_df = sheets_client.read_worksheet("players_2")
+        picks_df = sheets_client.read_worksheet("Picks")
+
+        logger.info(f"Loaded {len(schedule_df)} scheduled games")
+        logger.info(f"Loaded {len(players_df)} players")
+        logger.info(f"Loaded {len(picks_df)} picks")
+
+        # Get active games (still useful for logging even with override)
+        active_games = get_active_games(schedule_df)
+        logger.info(f"Found {len(active_games)} active/relevant games")
+
+        if not active_games and not args.week:
+            logger.info("No active games to process")
+            logger.info("Scoring job completed (no work to do)")
+            return
+
+        # Get players to fetch (with optional week override)
+        players_to_fetch = get_players_to_fetch(
+            players_df, picks_df, active_games, week_override=args.week
+        )
+        logger.info(f"Will fetch scores for {len(players_to_fetch)} player-week combinations")
+
+        if not players_to_fetch:
+            logger.info("No players need scores fetched")
+            logger.info("Scoring job completed (no work to do)")
+            return
+
+        # Update scores
+        updated = update_scores(sheets_client, api_client, players_to_fetch)
+
+        logger.info(f"Successfully updated {updated} player scores")
+        logger.info("Scoring job completed")
+
+    except FileNotFoundError as e:
+        logger.error(f"Configuration error: {e}")
+        sys.exit(1)
+    except Exception as e:
+        logger.exception(f"Scoring job failed: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
