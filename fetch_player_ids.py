@@ -7,7 +7,7 @@ Usage:
     python fetch_player_ids.py
 
 Outputs:
-    player_ids.csv - CSV with playerName, playerID, position for matched players
+    player_ids.csv - CSV with playerName, playerID, position, team for matched players
 """
 
 import csv
@@ -58,8 +58,8 @@ def load_config():
     return rapidapi_key, spreadsheet_url, gcp_credentials
 
 
-def get_players_from_sheet(spreadsheet_url: str, credentials: Dict[str, Any]) -> pd.DataFrame:
-    """Read existing players from Google Sheet."""
+def get_sheets_client(spreadsheet_url: str, credentials: Dict[str, Any]):
+    """Get Google Sheets client and spreadsheet."""
     scopes = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive",
@@ -67,7 +67,11 @@ def get_players_from_sheet(spreadsheet_url: str, credentials: Dict[str, Any]) ->
     creds = Credentials.from_service_account_info(credentials, scopes=scopes)
     client = gspread.authorize(creds)
     spreadsheet = client.open_by_url(spreadsheet_url)
+    return spreadsheet
 
+
+def get_players_from_sheet(spreadsheet) -> pd.DataFrame:
+    """Read existing players from Google Sheet."""
     try:
         worksheet = spreadsheet.worksheet("players_2")
         data = worksheet.get_all_records()
@@ -75,6 +79,29 @@ def get_players_from_sheet(spreadsheet_url: str, credentials: Dict[str, Any]) ->
     except gspread.WorksheetNotFound:
         print("Worksheet 'players_2' not found")
         return pd.DataFrame()
+
+
+def update_sheet_with_teams(spreadsheet, matched_players: list):
+    """Update the players_2 sheet with team data."""
+    try:
+        worksheet = spreadsheet.worksheet("players_2")
+    except gspread.WorksheetNotFound:
+        print("Worksheet 'players_2' not found, cannot update")
+        return
+
+    # Build DataFrame from matched players
+    df = pd.DataFrame(matched_players)
+
+    # Clear and rewrite the sheet
+    worksheet.clear()
+
+    # Write header and data
+    columns = ["playerName", "playerID", "position", "team"]
+    df = df[columns]
+    data = [columns] + df.values.tolist()
+    worksheet.update('A1', data)
+
+    print(f"Updated players_2 sheet with {len(matched_players)} players including team data")
 
 
 def fetch_nfl_player_list(api_key: str) -> list:
@@ -123,12 +150,14 @@ def match_players(sheet_players: pd.DataFrame, api_players: list) -> list:
         espn_name = player.get("espnName", "")
         espn_id = player.get("espnID", "")
         pos = player.get("pos", "")
+        team = player.get("team", "")
 
         if espn_name and espn_id:
-            api_lookup[espn_name] = {"id": espn_id, "pos": pos}
+            api_lookup[espn_name] = {"id": espn_id, "pos": pos, "team": team}
             api_lookup_normalized[normalize_name(espn_name)] = {
                 "id": espn_id,
                 "pos": pos,
+                "team": team,
                 "original_name": espn_name
             }
 
@@ -158,6 +187,7 @@ def match_players(sheet_players: pd.DataFrame, api_players: list) -> list:
                 "playerName": player_name,
                 "playerID": info["id"],
                 "position": sheet_position or info["pos"],
+                "team": info["team"],
             })
             continue
 
@@ -169,6 +199,7 @@ def match_players(sheet_players: pd.DataFrame, api_players: list) -> list:
                 "playerName": player_name,
                 "playerID": info["id"],
                 "position": sheet_position or info["pos"],
+                "team": info["team"],
             })
             continue
 
@@ -192,9 +223,12 @@ def main():
             print("Add [rapidapi] key = 'your-key' to .streamlit/secrets.toml")
             sys.exit(1)
 
+        # Get sheets client
+        spreadsheet = get_sheets_client(spreadsheet_url, gcp_credentials)
+
         # Get players from sheet
         print("\nReading players from Google Sheet...")
-        sheet_players = get_players_from_sheet(spreadsheet_url, gcp_credentials)
+        sheet_players = get_players_from_sheet(spreadsheet)
 
         if sheet_players.empty:
             print("No players found in sheet")
@@ -224,16 +258,20 @@ def main():
         # Write CSV
         output_file = "player_ids.csv"
         with open(output_file, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=["playerName", "playerID", "position"])
+            writer = csv.DictWriter(f, fieldnames=["playerName", "playerID", "position", "team"])
             writer.writeheader()
             writer.writerows(matched)
 
         print(f"\nOutput written to: {output_file}")
 
+        # Update Google Sheet with team data
+        print("\nUpdating Google Sheet...")
+        update_sheet_with_teams(spreadsheet, matched)
+
         # Also print matched players
         print("\nMatched players:")
         for player in matched:
-            print(f"  {player['playerName']}: {player['playerID']} ({player['position']})")
+            print(f"  {player['playerName']}: {player['playerID']} ({player['position']}, {player['team']})")
 
     except FileNotFoundError as e:
         print(f"ERROR: {e}")
