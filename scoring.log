@@ -1,0 +1,247 @@
+/bin/sh: ./venv/bin/python: No such file or directory
+/bin/sh: ./venv/bin/python: No such file or directory
+/bin/sh: ./venv/bin/python: No such file or directory
+/bin/sh: ./venv/bin/python: No such file or directory
+/bin/sh: ./venv/bin/python: No such file or directory
+/bin/sh: ./venv/bin/python: No such file or directory
+/bin/sh: ./venv/bin/python: No such file or directory
+/bin/sh: ./venv/bin/python: No such file or directory
+/bin/sh: ./venv/bin/python: No such file or directory
+/bin/sh: ./venv/bin/python: No such file or directory
+/bin/sh: ./venv/bin/python: No such file or directory
+2026-01-10 17:20:02,338 - INFO - ==================================================
+2026-01-10 17:20:02,338 - INFO - Starting scoring job
+2026-01-10 17:20:07,228 - INFO - Loaded 38 scheduled games
+2026-01-10 17:20:07,229 - INFO - Loaded 166 players
+2026-01-10 17:20:07,229 - INFO - Loaded 43 picks
+2026-01-10 17:20:07,229 - INFO - Loaded 10 existing scores
+2026-01-10 17:20:07,239 - INFO - Found 1 active/relevant games
+2026-01-10 17:20:07,239 - INFO - Active weeks: {'Wildcard'}
+2026-01-10 17:20:07,243 - INFO - Found 50 unique players picked across active weeks
+2026-01-10 17:20:07,274 - INFO - Will fetch scores for 50 player-week combinations
+2026-01-10 17:20:08,094 - INFO - Fetching stats for Kenneth Gainwell (ID: 4371733)
+2026-01-10 17:20:09,869 - WARNING -   -> Skipping Kenneth Gainwell: API returned game 20260104_BAL@PIT which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:09,870 - INFO - Fetching stats for Stefon Diggs (ID: 2976212)
+2026-01-10 17:20:11,598 - WARNING -   -> Skipping Stefon Diggs: API returned game 20260104_MIA@NE which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:11,599 - INFO - Fetching stats for DK Metcalf (ID: 4047650)
+2026-01-10 17:20:13,269 - WARNING -   -> Skipping DK Metcalf: API returned game 20251221_PIT@DET which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:13,269 - INFO - Fetching stats for Brenton Strange (ID: 4430539)
+2026-01-10 17:20:15,026 - WARNING -   -> Skipping Brenton Strange: API returned game 20260104_TEN@JAX which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:15,026 - INFO - Fetching stats for Jalen Coker (ID: 4695883)
+/Users/williamnash/github-projects/fantasy-football/scoring_job.py:572: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "lastUpdated": datetime.utcnow().isoformat() + "Z",
+2026-01-10 17:20:16,680 - INFO -   -> Jalen Coker: 3.3 pts (game 20260110_LAR@CAR)
+2026-01-10 17:20:16,681 - INFO - Fetching stats for Rhamondre Stevenson (ID: 4569173)
+2026-01-10 17:20:18,372 - WARNING -   -> Skipping Rhamondre Stevenson: API returned game 20260104_MIA@NE which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:18,372 - INFO - Fetching stats for Davante Adams (ID: 16800)
+2026-01-10 17:20:20,146 - WARNING -   -> Skipping Davante Adams: API returned game 20251214_DET@LAR which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:20,146 - INFO - Fetching stats for Jaylen Warren (ID: 4569987)
+2026-01-10 17:20:21,830 - WARNING -   -> Skipping Jaylen Warren: API returned game 20260104_BAL@PIT which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:21,830 - INFO - Fetching stats for Dallas Goedert (ID: 3121023)
+2026-01-10 17:20:23,526 - WARNING -   -> Skipping Dallas Goedert: API returned game 20251228_PHI@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:23,526 - INFO - Fetching stats for Cole Kmet (ID: 4258595)
+2026-01-10 17:20:25,234 - WARNING -   -> Skipping Cole Kmet: API returned game 20260104_DET@CHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:25,235 - INFO - Fetching stats for Justin Watson (ID: 3118892)
+2026-01-10 17:20:27,011 - WARNING -   -> Skipping Justin Watson: API returned game 20260104_IND@HOU which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:27,011 - INFO - Fetching stats for Bryce Young (ID: 4685720)
+2026-01-10 17:20:28,699 - INFO -   -> Bryce Young: 1.68 pts (game 20260110_LAR@CAR)
+2026-01-10 17:20:28,700 - INFO - Fetching stats for Tommy Tremble (ID: 4372780)
+2026-01-10 17:20:30,361 - INFO -   -> Tommy Tremble: 1.8 pts (game 20260110_LAR@CAR)
+2026-01-10 17:20:30,361 - INFO - Fetching stats for Tetairoa McMillan (ID: 4685472)
+2026-01-10 17:20:32,009 - INFO -   -> Tetairoa McMillan: 2.7 pts (game 20260110_LAR@CAR)
+2026-01-10 17:20:32,010 - INFO - Fetching stats for Omarion Hampton (ID: 4685382)
+2026-01-10 17:20:33,682 - WARNING -   -> Skipping Omarion Hampton: API returned game 20251227_HOU@LAC which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:33,682 - INFO - Fetching stats for Colby Parkinson (ID: 4242557)
+2026-01-10 17:20:35,405 - INFO -   -> Colby Parkinson: 1.5 pts (game 20260110_LAR@CAR)
+2026-01-10 17:20:35,405 - INFO - Fetching stats for Matthew Stafford (ID: 12483)
+2026-01-10 17:20:37,146 - INFO -   -> Matthew Stafford: 6.96 pts (game 20260110_LAR@CAR)
+2026-01-10 17:20:37,146 - INFO - Fetching stats for Trevor Lawrence (ID: 4360310)
+2026-01-10 17:20:38,869 - WARNING -   -> Skipping Trevor Lawrence: API returned game 20260104_TEN@JAX which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:38,869 - INFO - Fetching stats for Colston Loveland (ID: 4723086)
+2026-01-10 17:20:40,626 - WARNING -   -> Skipping Colston Loveland: API returned game 20260104_DET@CHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:40,626 - INFO - Fetching stats for Saquon Barkley (ID: 3929630)
+2026-01-10 17:20:42,301 - WARNING -   -> Skipping Saquon Barkley: API returned game 20251228_PHI@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:42,301 - INFO - Fetching stats for Josh Jacobs (ID: 4047365)
+2026-01-10 17:20:44,108 - WARNING -   -> Skipping Josh Jacobs: API returned game 20251227_BAL@GB which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:44,108 - INFO - Fetching stats for Travis Etienne Jr. (ID: 4239996)
+2026-01-10 17:20:45,815 - WARNING -   -> Skipping Travis Etienne Jr.: API returned game 20260104_TEN@JAX which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:45,816 - INFO - Fetching stats for D'Andre Swift (ID: 4259545)
+2026-01-10 17:20:47,487 - WARNING -   -> Skipping D'Andre Swift: API returned game 20260104_DET@CHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:47,488 - INFO - Fetching stats for Nico Collins (ID: 4258173)
+2026-01-10 17:20:49,227 - WARNING -   -> Skipping Nico Collins: API returned game 20251227_HOU@LAC which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:49,228 - INFO - Fetching stats for Dalton Schultz (ID: 3117256)
+2026-01-10 17:20:50,969 - WARNING -   -> Skipping Dalton Schultz: API returned game 20260104_IND@HOU which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:50,969 - INFO - Fetching stats for Trevor Etienne (ID: 4685350)
+2026-01-10 17:20:52,651 - INFO -   -> Trevor Etienne: 0.4 pts (game 20260110_LAR@CAR)
+2026-01-10 17:20:52,651 - INFO - Fetching stats for James Cook III (ID: 4379399)
+2026-01-10 17:20:54,347 - WARNING -   -> Skipping James Cook III: API returned game 20260104_NYJ@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:54,347 - INFO - Fetching stats for DeVonta Smith (ID: 4241478)
+2026-01-10 17:20:56,007 - WARNING -   -> Skipping DeVonta Smith: API returned game 20260104_WSH@PHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:56,007 - INFO - Fetching stats for Oronde Gadsden II (ID: 4595342)
+2026-01-10 17:20:57,685 - WARNING -   -> Skipping Oronde Gadsden II: API returned game 20260104_LAC@DEN which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:57,685 - INFO - Fetching stats for Drake Maye (ID: 4431452)
+2026-01-10 17:20:59,467 - WARNING -   -> Skipping Drake Maye: API returned game 20260104_MIA@NE which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:20:59,468 - INFO - Fetching stats for Puka Nacua (ID: 4426515)
+2026-01-10 17:21:01,152 - INFO -   -> Puka Nacua: 18.4 pts (game 20260110_LAR@CAR)
+2026-01-10 17:21:01,152 - INFO - Fetching stats for Christian Watson (ID: 4248528)
+2026-01-10 17:21:02,874 - WARNING -   -> Skipping Christian Watson: API returned game 20251227_BAL@GB which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:02,875 - INFO - Fetching stats for Ladd McConkey (ID: 4612826)
+2026-01-10 17:21:04,539 - WARNING -   -> Skipping Ladd McConkey: API returned game 20251227_HOU@LAC which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:04,539 - INFO - Fetching stats for Chuba Hubbard (ID: 4241416)
+2026-01-10 17:21:06,204 - INFO -   -> Chuba Hubbard: 1.4 pts (game 20260110_LAR@CAR)
+2026-01-10 17:21:06,204 - INFO - Fetching stats for Dawson Knox (ID: 3930086)
+2026-01-10 17:21:07,862 - WARNING -   -> Skipping Dawson Knox: API returned game 20260104_NYJ@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:07,862 - INFO - Fetching stats for DJ Moore (ID: 3915416)
+2026-01-10 17:21:09,564 - WARNING -   -> Skipping DJ Moore: API returned game 20260104_DET@CHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:09,564 - INFO - Fetching stats for A.J. Brown (ID: 4047646)
+2026-01-10 17:21:11,266 - WARNING -   -> Skipping A.J. Brown: API returned game 20251228_PHI@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:11,266 - INFO - Fetching stats for Hunter Henry (ID: 3046439)
+2026-01-10 17:21:12,950 - WARNING -   -> Skipping Hunter Henry: API returned game 20260104_MIA@NE which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:12,951 - INFO - Fetching stats for Caleb Williams (ID: 4431611)
+2026-01-10 17:21:14,631 - WARNING -   -> Skipping Caleb Williams: API returned game 20260104_DET@CHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:14,631 - INFO - Fetching stats for Christian McCaffrey (ID: 3117251)
+2026-01-10 17:21:16,365 - WARNING -   -> Skipping Christian McCaffrey: API returned game 20260103_SEA@SF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:16,366 - INFO - Fetching stats for Jakobi Meyers (ID: 3916433)
+2026-01-10 17:21:18,038 - WARNING -   -> Skipping Jakobi Meyers: API returned game 20260104_TEN@JAX which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:18,038 - INFO - Fetching stats for Brock Purdy (ID: 4361741)
+2026-01-10 17:21:19,721 - WARNING -   -> Skipping Brock Purdy: API returned game 20260103_SEA@SF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:19,721 - INFO - Fetching stats for Keenan Allen (ID: 15818)
+2026-01-10 17:21:21,483 - WARNING -   -> Skipping Keenan Allen: API returned game 20260104_LAC@DEN which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:21,484 - INFO - Fetching stats for George Kittle (ID: 3040151)
+2026-01-10 17:21:23,225 - WARNING -   -> Skipping George Kittle: API returned game 20260103_SEA@SF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:23,225 - INFO - Fetching stats for Parker Washington (ID: 4432620)
+2026-01-10 17:21:24,950 - WARNING -   -> Skipping Parker Washington: API returned game 20260104_TEN@JAX which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:24,950 - INFO - Fetching stats for Jonnu Smith (ID: 3054212)
+2026-01-10 17:21:26,609 - WARNING -   -> Skipping Jonnu Smith: API returned game 20260104_BAL@PIT which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:26,610 - INFO - Fetching stats for Justin Herbert (ID: 4038941)
+2026-01-10 17:21:28,291 - WARNING -   -> Skipping Justin Herbert: API returned game 20251227_HOU@LAC which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:28,292 - INFO - Fetching stats for Josh Allen (ID: 3918298)
+2026-01-10 17:21:30,059 - WARNING -   -> Skipping Josh Allen: API returned game 20260104_NYJ@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:21:30,059 - INFO - Fetching stats for Rico Dowdle (ID: 4038815)
+2026-01-10 17:21:31,753 - INFO -   -> Rico Dowdle: 0.1 pts (game 20260110_LAR@CAR)
+2026-01-10 17:21:31,754 - INFO - Fetching stats for Aaron Rodgers (ID: 8439)
+2026-01-10 17:21:33,443 - WARNING -   -> Skipping Aaron Rodgers: API returned game 20260104_BAL@PIT which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+/Users/williamnash/github-projects/fantasy-football/scoring_job.py:192: DeprecationWarning: [Deprecated][in version 6.0.0]: Method signature's arguments 'range_name' and 'values' will change their order. We recommend using named arguments for minimal impact. In addition, the argument 'values' will be mandatory of type: 'List[List]'. (ex) Worksheet.update(values = [[]], range_name=) 
+  worksheet.update('A1', data)
+2026-01-10 17:21:34,225 - INFO - Update - try environment first (for GitHub Actions), fall back to secrets.toml
+2026-01-10 17:21:34,225 - INFO - Loading configuration from secrets.toml
+2026-01-10 17:21:34,225 - INFO - Successfully updated 10 player scores
+2026-01-10 17:21:34,225 - INFO - Scoring job completed
+2026-01-10 17:30:01,785 - INFO - ==================================================
+2026-01-10 17:30:01,786 - INFO - Starting scoring job
+2026-01-10 17:30:05,503 - INFO - Loaded 38 scheduled games
+2026-01-10 17:30:05,503 - INFO - Loaded 166 players
+2026-01-10 17:30:05,503 - INFO - Loaded 43 picks
+2026-01-10 17:30:05,503 - INFO - Loaded 10 existing scores
+2026-01-10 17:30:05,510 - INFO - Found 1 active/relevant games
+2026-01-10 17:30:05,511 - INFO - Active weeks: {'Wildcard'}
+2026-01-10 17:30:05,513 - INFO - Found 50 unique players picked across active weeks
+2026-01-10 17:30:05,537 - INFO - Will fetch scores for 50 player-week combinations
+2026-01-10 17:30:06,357 - INFO - Fetching stats for Christian McCaffrey (ID: 3117251)
+2026-01-10 17:30:08,008 - WARNING -   -> Skipping Christian McCaffrey: API returned game 20260103_SEA@SF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:08,009 - INFO - Fetching stats for Ladd McConkey (ID: 4612826)
+2026-01-10 17:30:09,677 - WARNING -   -> Skipping Ladd McConkey: API returned game 20251227_HOU@LAC which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:09,677 - INFO - Fetching stats for Kenneth Gainwell (ID: 4371733)
+2026-01-10 17:30:11,363 - WARNING -   -> Skipping Kenneth Gainwell: API returned game 20260104_BAL@PIT which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:11,363 - INFO - Fetching stats for Parker Washington (ID: 4432620)
+2026-01-10 17:30:13,050 - WARNING -   -> Skipping Parker Washington: API returned game 20260104_TEN@JAX which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:13,050 - INFO - Fetching stats for Oronde Gadsden II (ID: 4595342)
+2026-01-10 17:30:14,682 - WARNING -   -> Skipping Oronde Gadsden II: API returned game 20260104_LAC@DEN which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:14,682 - INFO - Fetching stats for A.J. Brown (ID: 4047646)
+2026-01-10 17:30:16,397 - WARNING -   -> Skipping A.J. Brown: API returned game 20251228_PHI@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:16,397 - INFO - Fetching stats for Colby Parkinson (ID: 4242557)
+/Users/williamnash/github-projects/fantasy-football/scoring_job.py:572: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "lastUpdated": datetime.utcnow().isoformat() + "Z",
+2026-01-10 17:30:18,062 - INFO -   -> Colby Parkinson: 1.5 pts (game 20260110_LAR@CAR)
+2026-01-10 17:30:18,062 - INFO - Fetching stats for Cole Kmet (ID: 4258595)
+2026-01-10 17:30:19,736 - WARNING -   -> Skipping Cole Kmet: API returned game 20260104_DET@CHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:19,736 - INFO - Fetching stats for Dallas Goedert (ID: 3121023)
+2026-01-10 17:30:21,445 - WARNING -   -> Skipping Dallas Goedert: API returned game 20251228_PHI@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:21,445 - INFO - Fetching stats for DK Metcalf (ID: 4047650)
+2026-01-10 17:30:23,120 - WARNING -   -> Skipping DK Metcalf: API returned game 20251221_PIT@DET which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:23,120 - INFO - Fetching stats for Omarion Hampton (ID: 4685382)
+2026-01-10 17:30:24,784 - WARNING -   -> Skipping Omarion Hampton: API returned game 20251227_HOU@LAC which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:24,784 - INFO - Fetching stats for Jakobi Meyers (ID: 3916433)
+2026-01-10 17:30:26,493 - WARNING -   -> Skipping Jakobi Meyers: API returned game 20260104_TEN@JAX which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:26,493 - INFO - Fetching stats for Jalen Coker (ID: 4695883)
+2026-01-10 17:30:28,204 - INFO -   -> Jalen Coker: 3.3 pts (game 20260110_LAR@CAR)
+2026-01-10 17:30:28,204 - INFO - Fetching stats for Dalton Schultz (ID: 3117256)
+2026-01-10 17:30:29,870 - WARNING -   -> Skipping Dalton Schultz: API returned game 20260104_IND@HOU which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:29,870 - INFO - Fetching stats for Puka Nacua (ID: 4426515)
+2026-01-10 17:30:31,563 - INFO -   -> Puka Nacua: 18.4 pts (game 20260110_LAR@CAR)
+2026-01-10 17:30:31,563 - INFO - Fetching stats for George Kittle (ID: 3040151)
+2026-01-10 17:30:33,239 - WARNING -   -> Skipping George Kittle: API returned game 20260103_SEA@SF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:33,240 - INFO - Fetching stats for Saquon Barkley (ID: 3929630)
+2026-01-10 17:30:34,951 - WARNING -   -> Skipping Saquon Barkley: API returned game 20251228_PHI@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:34,952 - INFO - Fetching stats for Tommy Tremble (ID: 4372780)
+2026-01-10 17:30:36,620 - INFO -   -> Tommy Tremble: 1.8 pts (game 20260110_LAR@CAR)
+2026-01-10 17:30:36,620 - INFO - Fetching stats for Jonnu Smith (ID: 3054212)
+2026-01-10 17:30:38,289 - WARNING -   -> Skipping Jonnu Smith: API returned game 20260104_BAL@PIT which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:38,290 - INFO - Fetching stats for Brenton Strange (ID: 4430539)
+2026-01-10 17:30:39,943 - WARNING -   -> Skipping Brenton Strange: API returned game 20260104_TEN@JAX which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:39,944 - INFO - Fetching stats for Caleb Williams (ID: 4431611)
+2026-01-10 17:30:41,720 - WARNING -   -> Skipping Caleb Williams: API returned game 20260104_DET@CHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:41,720 - INFO - Fetching stats for Justin Watson (ID: 3118892)
+2026-01-10 17:30:43,464 - WARNING -   -> Skipping Justin Watson: API returned game 20260104_IND@HOU which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:43,465 - INFO - Fetching stats for Jaylen Warren (ID: 4569987)
+2026-01-10 17:30:45,307 - WARNING -   -> Skipping Jaylen Warren: API returned game 20260104_BAL@PIT which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:45,307 - INFO - Fetching stats for D'Andre Swift (ID: 4259545)
+2026-01-10 17:30:46,988 - WARNING -   -> Skipping D'Andre Swift: API returned game 20260104_DET@CHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:46,988 - INFO - Fetching stats for Trevor Lawrence (ID: 4360310)
+2026-01-10 17:30:48,715 - WARNING -   -> Skipping Trevor Lawrence: API returned game 20260104_TEN@JAX which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:48,716 - INFO - Fetching stats for Tetairoa McMillan (ID: 4685472)
+2026-01-10 17:30:50,375 - INFO -   -> Tetairoa McMillan: 4.9 pts (game 20260110_LAR@CAR)
+2026-01-10 17:30:50,375 - INFO - Fetching stats for Christian Watson (ID: 4248528)
+2026-01-10 17:30:52,023 - WARNING -   -> Skipping Christian Watson: API returned game 20251227_BAL@GB which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:52,023 - INFO - Fetching stats for Rico Dowdle (ID: 4038815)
+2026-01-10 17:30:53,668 - INFO -   -> Rico Dowdle: 0.1 pts (game 20260110_LAR@CAR)
+2026-01-10 17:30:53,669 - INFO - Fetching stats for Drake Maye (ID: 4431452)
+2026-01-10 17:30:55,426 - WARNING -   -> Skipping Drake Maye: API returned game 20260104_MIA@NE which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:55,426 - INFO - Fetching stats for Travis Etienne Jr. (ID: 4239996)
+2026-01-10 17:30:57,109 - WARNING -   -> Skipping Travis Etienne Jr.: API returned game 20260104_TEN@JAX which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:30:57,109 - INFO - Fetching stats for Matthew Stafford (ID: 12483)
+2026-01-10 17:30:58,829 - INFO -   -> Matthew Stafford: 8.4 pts (game 20260110_LAR@CAR)
+2026-01-10 17:30:58,829 - INFO - Fetching stats for Josh Allen (ID: 3918298)
+2026-01-10 17:31:00,529 - WARNING -   -> Skipping Josh Allen: API returned game 20260104_NYJ@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:00,529 - INFO - Fetching stats for Davante Adams (ID: 16800)
+2026-01-10 17:31:02,303 - WARNING -   -> Skipping Davante Adams: API returned game 20251214_DET@LAR which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:02,303 - INFO - Fetching stats for Rhamondre Stevenson (ID: 4569173)
+2026-01-10 17:31:04,023 - WARNING -   -> Skipping Rhamondre Stevenson: API returned game 20260104_MIA@NE which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:04,023 - INFO - Fetching stats for Dawson Knox (ID: 3930086)
+2026-01-10 17:31:05,794 - WARNING -   -> Skipping Dawson Knox: API returned game 20260104_NYJ@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:05,794 - INFO - Fetching stats for Hunter Henry (ID: 3046439)
+2026-01-10 17:31:07,465 - WARNING -   -> Skipping Hunter Henry: API returned game 20260104_MIA@NE which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:07,465 - INFO - Fetching stats for Bryce Young (ID: 4685720)
+2026-01-10 17:31:09,172 - INFO -   -> Bryce Young: 2.56 pts (game 20260110_LAR@CAR)
+2026-01-10 17:31:09,172 - INFO - Fetching stats for DeVonta Smith (ID: 4241478)
+2026-01-10 17:31:10,906 - WARNING -   -> Skipping DeVonta Smith: API returned game 20260104_WSH@PHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:10,906 - INFO - Fetching stats for Stefon Diggs (ID: 2976212)
+2026-01-10 17:31:12,647 - WARNING -   -> Skipping Stefon Diggs: API returned game 20260104_MIA@NE which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:12,647 - INFO - Fetching stats for Chuba Hubbard (ID: 4241416)
+2026-01-10 17:31:14,391 - INFO -   -> Chuba Hubbard: 8.3 pts (game 20260110_LAR@CAR)
+2026-01-10 17:31:14,391 - INFO - Fetching stats for Brock Purdy (ID: 4361741)
+2026-01-10 17:31:16,040 - WARNING -   -> Skipping Brock Purdy: API returned game 20260103_SEA@SF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:16,041 - INFO - Fetching stats for DJ Moore (ID: 3915416)
+2026-01-10 17:31:17,722 - WARNING -   -> Skipping DJ Moore: API returned game 20260104_DET@CHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:17,723 - INFO - Fetching stats for Colston Loveland (ID: 4723086)
+2026-01-10 17:31:19,405 - WARNING -   -> Skipping Colston Loveland: API returned game 20260104_DET@CHI which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:19,406 - INFO - Fetching stats for James Cook III (ID: 4379399)
+2026-01-10 17:31:21,066 - WARNING -   -> Skipping James Cook III: API returned game 20260104_NYJ@BUF which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:21,066 - INFO - Fetching stats for Justin Herbert (ID: 4038941)
+2026-01-10 17:31:22,741 - WARNING -   -> Skipping Justin Herbert: API returned game 20251227_HOU@LAC which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:22,741 - INFO - Fetching stats for Josh Jacobs (ID: 4047365)
+2026-01-10 17:31:24,528 - WARNING -   -> Skipping Josh Jacobs: API returned game 20251227_BAL@GB which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:24,528 - INFO - Fetching stats for Aaron Rodgers (ID: 8439)
+2026-01-10 17:31:26,206 - WARNING -   -> Skipping Aaron Rodgers: API returned game 20260104_BAL@PIT which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:26,206 - INFO - Fetching stats for Nico Collins (ID: 4258173)
+2026-01-10 17:31:27,881 - WARNING -   -> Skipping Nico Collins: API returned game 20251227_HOU@LAC which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+2026-01-10 17:31:27,881 - INFO - Fetching stats for Trevor Etienne (ID: 4685350)
+2026-01-10 17:31:29,646 - INFO -   -> Trevor Etienne: 0.4 pts (game 20260110_LAR@CAR)
+2026-01-10 17:31:29,647 - INFO - Fetching stats for Keenan Allen (ID: 15818)
+2026-01-10 17:31:31,386 - WARNING -   -> Skipping Keenan Allen: API returned game 20260104_LAC@DEN which is not in Wildcard. Expected games: {'20260110_LAR@CAR'}
+/Users/williamnash/github-projects/fantasy-football/scoring_job.py:192: DeprecationWarning: [Deprecated][in version 6.0.0]: Method signature's arguments 'range_name' and 'values' will change their order. We recommend using named arguments for minimal impact. In addition, the argument 'values' will be mandatory of type: 'List[List]'. (ex) Worksheet.update(values = [[]], range_name=) 
+  worksheet.update('A1', data)
+2026-01-10 17:31:32,207 - INFO - Update - try environment first (for GitHub Actions), fall back to secrets.toml
+2026-01-10 17:31:32,207 - INFO - Loading configuration from secrets.toml
+2026-01-10 17:31:32,208 - INFO - Successfully updated 10 player scores
+2026-01-10 17:31:32,208 - INFO - Scoring job completed

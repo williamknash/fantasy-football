@@ -18,6 +18,7 @@ Recommended cron schedule (during game days):
 """
 
 import argparse
+import os
 import sys
 import time
 import logging
@@ -46,8 +47,7 @@ SCORING_RULES = {
     "passYards": ".04",
     "passTD": "4",
     "passInterceptions": "-2",
-    "pointsPerReception": "1",
-    "carries": ".2",
+    "pointsPerReception": "0",
     "rushYards": ".1",
     "rushTD": "6",
     "fumbles": "-2",
@@ -110,6 +110,36 @@ class Config:
                 "https://www.googleapis.com/oauth2/v1/certs"
             ),
             "client_x509_cert_url": gsheets.get("client_x509_cert_url", ""),
+        }
+
+        return config
+
+    @classmethod
+    def from_environment(cls) -> "Config":
+        """Load configuration from environment variables (for GitHub Actions)."""
+        config = cls()
+
+        # Load RapidAPI key
+        config.rapidapi_key = os.environ.get("RAPIDAPI_KEY", "")
+
+        # Load Google Sheets connection info
+        config.spreadsheet_url = os.environ.get("SPREADSHEET_URL", "")
+
+        # Build GCP credentials dict from environment
+        config.gcp_credentials = {
+            "type": os.environ.get("GCP_TYPE", "service_account"),
+            "project_id": os.environ.get("GCP_PROJECT_ID", ""),
+            "private_key_id": os.environ.get("GCP_PRIVATE_KEY_ID", ""),
+            "private_key": os.environ.get("GCP_PRIVATE_KEY", "").replace("\\n", "\n"),
+            "client_email": os.environ.get("GCP_CLIENT_EMAIL", ""),
+            "client_id": os.environ.get("GCP_CLIENT_ID", ""),
+            "auth_uri": os.environ.get("GCP_AUTH_URI", "https://accounts.google.com/o/oauth2/auth"),
+            "token_uri": os.environ.get("GCP_TOKEN_URI", "https://oauth2.googleapis.com/token"),
+            "auth_provider_x509_cert_url": os.environ.get(
+                "GCP_AUTH_PROVIDER_CERT_URL",
+                "https://www.googleapis.com/oauth2/v1/certs"
+            ),
+            "client_x509_cert_url": os.environ.get("GCP_CLIENT_CERT_URL", ""),
         }
 
         return config
@@ -269,6 +299,7 @@ def get_players_to_fetch(
     players_df: pd.DataFrame,
     picks_df: pd.DataFrame,
     active_games: List[Dict[str, Any]],
+    scores_df: pd.DataFrame,
     week_override: Optional[str] = None
 ) -> List[Dict[str, str]]:
     """
@@ -278,6 +309,7 @@ def get_players_to_fetch(
         players_df: DataFrame of players with playerName and playerID
         picks_df: DataFrame of picks with Week and position columns
         active_games: List of active game dicts from schedule
+        scores_df: DataFrame of existing scores to check for completed games
         week_override: If provided, fetch players for this week regardless of schedule
 
     Returns list of dicts with playerID, playerName, gameWeek
@@ -287,6 +319,16 @@ def get_players_to_fetch(
 
     if not active_games and not week_override:
         return []
+
+    # Build map of weeks to game status (to check if games are final)
+    week_game_status = {}
+    for game in active_games:
+        week = game.get("gameWeek", "")
+        status = game.get("gameStatus", "").lower().strip()
+        if week:
+            if week not in week_game_status:
+                week_game_status[week] = []
+            week_game_status[week].append(status)
 
     # Determine which weeks to fetch
     if week_override:
@@ -307,19 +349,23 @@ def get_players_to_fetch(
 
     logger.info(f"Active weeks: {active_weeks}")
 
-    # Get all picked player names for active weeks
-    picked_players = set()
+    # Get all picked player names for active weeks, tracking which week they were picked for
+    picked_players_by_week = {}  # week -> set of player names
     position_cols = ['QB', 'RB1', 'RB2', 'WR1', 'WR2', 'TE']
 
     for _, row in picks_df.iterrows():
         pick_week = str(row.get("Week", "")).strip()
         if pick_week in active_weeks:
+            if pick_week not in picked_players_by_week:
+                picked_players_by_week[pick_week] = set()
+            
             for col in position_cols:
                 player = row.get(col)
                 if player and pd.notna(player):
-                    picked_players.add(str(player).strip())
+                    picked_players_by_week[pick_week].add(str(player).strip())
 
-    logger.info(f"Found {len(picked_players)} unique players picked for active weeks")
+    total_unique_players = len(set().union(*picked_players_by_week.values())) if picked_players_by_week else 0
+    logger.info(f"Found {total_unique_players} unique players picked across active weeks")
 
     # Build player lookup with playerID
     player_lookup = {}
@@ -329,21 +375,66 @@ def get_players_to_fetch(
         if name and player_id and player_id != "nan":
             player_lookup[name] = player_id
 
-    # Build list of players to fetch
-    result = []
-    for player_name in picked_players:
-        if player_name in player_lookup:
-            # Find game week for this player
-            for week in active_weeks:
-                result.append({
-                    "playerID": player_lookup[player_name],
-                    "playerName": player_name,
-                    "gameWeek": week,
-                })
-        else:
-            logger.warning(f"No playerID found for: {player_name}")
+    # Build a map of gameID -> status for quick lookup
+    game_status_map = {}
+    for game in active_games:
+        game_id = game.get("gameID", "")
+        if game_id:
+            game_status_map[str(game_id)] = game.get("gameStatus", "").lower().strip()
 
-    return result
+    # Build list of players to fetch, only for weeks they were picked
+    result = []
+    skipped_final = 0
+    
+    for week, player_names in picked_players_by_week.items():
+        for player_name in player_names:
+            if player_name in player_lookup:
+                player_id = player_lookup[player_name]
+                
+                # Check if we already have a score for this player+week
+                should_skip = False
+                
+                if not scores_df.empty:
+                    existing_score = scores_df[
+                        (scores_df['playerID'].astype(str) == str(player_id)) &
+                        (scores_df['gameWeek'].astype(str) == str(week))
+                    ]
+                    
+                    if not existing_score.empty:
+                        # We have an existing score - check if the game is final
+                        game_id = str(existing_score.iloc[0].get('gameID', ''))
+                        game_status = game_status_map.get(game_id, '')
+                        
+                        if game_status == 'final':
+                            # Game is final and we have a score - skip this player
+                            should_skip = True
+                            skipped_final += 1
+                
+                if not should_skip:
+                    result.append({
+                        "playerID": player_id,
+                        "playerName": player_name,
+                        "gameWeek": week,
+                    })
+            else:
+                logger.warning(f"No playerID found for: {player_name}")
+
+    if skipped_final > 0:
+        logger.info(f"Skipped {skipped_final} players with existing scores for final games")
+
+    # Deduplicate by playerID + gameWeek combination
+    seen = set()
+    deduplicated = []
+    for item in result:
+        key = (item['playerID'], item['gameWeek'])
+        if key not in seen:
+            seen.add(key)
+            deduplicated.append(item)
+    
+    if len(result) != len(deduplicated):
+        logger.warning(f"Removed {len(result) - len(deduplicated)} duplicate player-week combinations")
+    
+    return deduplicated
 
 
 def parse_stats_from_response(stats: Dict[str, Any]) -> Dict[str, Any]:
@@ -395,7 +486,8 @@ def parse_stats_from_response(stats: Dict[str, Any]) -> Dict[str, Any]:
 def update_scores(
     sheets_client: GoogleSheetsClient,
     api_client: RapidAPIClient,
-    players_to_fetch: List[Dict[str, str]]
+    players_to_fetch: List[Dict[str, str]],
+    active_games: List[Dict[str, Any]]
 ) -> int:
     """
     Fetch and update scores for the given players.
@@ -405,6 +497,18 @@ def update_scores(
     if not players_to_fetch:
         logger.info("No players to fetch scores for")
         return 0
+    
+    # Build map of week -> list of gameIDs to validate responses
+    week_to_games = {}
+    for game in active_games:
+        week = str(game.get("gameWeek", "")).strip()
+        game_id = str(game.get("gameID", "")).strip()
+        if week and game_id:
+            if week not in week_to_games:
+                week_to_games[week] = set()
+            week_to_games[week].add(game_id)
+    
+    logger.debug(f"Week to games map: {week_to_games}")
 
     # Load existing scores
     scores_df = sheets_client.read_worksheet("scores")
@@ -433,11 +537,26 @@ def update_scores(
 
         if stats:
             parsed = parse_stats_from_response(stats)
+            returned_game_id = str(parsed.get("gameID", "")).strip()
+            
+            # Validate that the returned game is from the correct week
+            expected_game_ids = week_to_games.get(game_week, set())
+            
+            if not returned_game_id:
+                logger.warning(f"  -> No gameID in API response for {player_name}")
+                continue
+            
+            if returned_game_id not in expected_game_ids:
+                logger.warning(
+                    f"  -> Skipping {player_name}: API returned game {returned_game_id} "
+                    f"which is not in {game_week}. Expected games: {expected_game_ids}"
+                )
+                continue
 
             score_record = {
                 "playerID": player_id,
                 "playerName": player_name,
-                "gameID": parsed.get("gameID", ""),
+                "gameID": returned_game_id,
                 "gameWeek": game_week,
                 "fantasyPoints": parsed["fantasyPoints"],
                 "passYards": parsed["passYards"],
@@ -457,7 +576,7 @@ def update_scores(
             existing_scores[key] = score_record
             updated_count += 1
 
-            logger.info(f"  -> {player_name}: {score_record['fantasyPoints']} pts")
+            logger.info(f"  -> {player_name}: {score_record['fantasyPoints']} pts (game {returned_game_id})")
         else:
             logger.warning(f"  -> No stats returned for {player_name}")
 
@@ -473,8 +592,13 @@ def update_scores(
         # Reorder columns
         updated_df = updated_df[[c for c in columns if c in updated_df.columns]]
         sheets_client.write_worksheet("scores", updated_df)
-        logger.info(f"Updated scores worksheet with {len(updated_df)} records")
-
+        logger.info("Update - try environment first (for GitHub Actions), fall back to secrets.toml")
+        if os.environ.get("RAPIDAPI_KEY"):
+            logger.info("Loading configuration from environment variables")
+            config = Config.from_environment()
+        else:
+            logger.info("Loading configuration from secrets.toml")
+    
     return updated_count
 
 
@@ -525,10 +649,12 @@ def main():
         schedule_df = sheets_client.read_worksheet("schedule")
         players_df = sheets_client.read_worksheet("players_2")
         picks_df = sheets_client.read_worksheet("Picks")
+        scores_df = sheets_client.read_worksheet("scores")
 
         logger.info(f"Loaded {len(schedule_df)} scheduled games")
         logger.info(f"Loaded {len(players_df)} players")
         logger.info(f"Loaded {len(picks_df)} picks")
+        logger.info(f"Loaded {len(scores_df)} existing scores")
 
         # Get active games (still useful for logging even with override)
         active_games = get_active_games(schedule_df)
@@ -541,7 +667,7 @@ def main():
 
         # Get players to fetch (with optional week override)
         players_to_fetch = get_players_to_fetch(
-            players_df, picks_df, active_games, week_override=args.week
+            players_df, picks_df, active_games, scores_df, week_override=args.week
         )
         logger.info(f"Will fetch scores for {len(players_to_fetch)} player-week combinations")
 
@@ -551,7 +677,7 @@ def main():
             return
 
         # Update scores
-        updated = update_scores(sheets_client, api_client, players_to_fetch)
+        updated = update_scores(sheets_client, api_client, players_to_fetch, active_games)
 
         logger.info(f"Successfully updated {updated} player scores")
         logger.info("Scoring job completed")
