@@ -22,6 +22,7 @@ import sys
 import time
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 
@@ -346,7 +347,8 @@ def get_active_games(schedule_df: pd.DataFrame) -> List[Dict[str, Any]]:
         return []
 
     active_games = []
-    now = datetime.now()
+    eastern = ZoneInfo("America/New_York")
+    now = datetime.now(eastern)
 
     for _, row in schedule_df.iterrows():
         game_status = str(row.get("gameStatus", "")).lower().strip()
@@ -363,6 +365,9 @@ def get_active_games(schedule_df: pd.DataFrame) -> List[Dict[str, Any]]:
                 game_time_str = row.get("gameTime", "")
                 if game_time_str:
                     game_time = pd.to_datetime(game_time_str)
+                    # Assume game times are in Eastern timezone
+                    if game_time.tzinfo is None:
+                        game_time = game_time.replace(tzinfo=eastern)
                     # Include games that started within the last 4 hours
                     # or are about to start within 15 minutes
                     if (game_time - timedelta(minutes=15)) <= now <= (game_time + timedelta(hours=4)):
