@@ -18,7 +18,6 @@ Recommended cron schedule (during game days):
 """
 
 import argparse
-import os
 import sys
 import time
 import logging
@@ -113,7 +112,6 @@ class Config:
         }
 
         return config
-
 
 
 class GoogleSheetsClient:
@@ -719,13 +717,7 @@ def update_scores(
         # Reorder columns
         updated_df = updated_df[[c for c in columns if c in updated_df.columns]]
         sheets_client.write_worksheet("scores", updated_df)
-        logger.info("Update - try environment first (for GitHub Actions), fall back to secrets.toml")
-        if os.environ.get("RAPIDAPI_KEY"):
-            logger.info("Loading configuration from environment variables")
-            config = Config.from_environment()
-        else:
-            logger.info("Loading configuration from secrets.toml")
-    
+
     return updated_count
 
 
