@@ -27,9 +27,11 @@ jobs:
           pip install -r requirements.txt
 
       - name: Create secrets file
+        env:
+          SECRETS_CONTENT: ${{ secrets.SECRETS }}
         run: |
           mkdir -p .streamlit
-          echo "${{ secrets.SECRETS }}" > .streamlit/secrets.toml
+          printenv SECRETS_CONTENT > .streamlit/secrets.toml
 
       - name: Run scoring job
         run: |
